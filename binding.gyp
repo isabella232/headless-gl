@@ -9,7 +9,7 @@
   ],
   'targets': [
     {
-      'target_name': 'webgl',
+      'target_name': 'gl',
       'defines': [
         'VERSION=0.1.3'
       ],
@@ -41,6 +41,17 @@
           }
         ],
       ],
+    },
+    {
+      'target_name': 'action_after_build',
+      'type': 'none',
+      'dependencies': [ '<(module_name)' ],
+      'copies': [
+        {
+          'files': [ '<(PRODUCT_DIR)/<(module_name).node' ],
+          'destination': '<(module_path)'
+        }
+      ]
     }
   ]
 }
