@@ -1,0 +1,22 @@
+language: node_js
+
+os:
+  - linux
+  - osx
+
+env:
+  global:
+    - secure: "oHO/e8r9bW1BN2Fi0f2hEg6mXxEHRYNkfvFPiBguvNGHxs5TvTbGI/AqvUl9lOP1Ha3M6EqZDZLI7edJ6Y58ckFQMCbVX4mPzHG6oXMavPUFcgrJo43E5UkPUO7jkr+KH+CGzU7BImPPuyH4V82F7eBcih0TFQU1ZQRJZUENW3w="
+    - secure: "Jwm9AFR56g5TWUUxY65B7T3N4cQVm3PMWy4oiuEJQSB6CcdflmnLPQjKblMeqxtUgI+fL+IX8FP/kqXOVSMtZo4w/3o+/EcGYjnXEn62iMWNUORak4BpwEBbD9gKQI40IayKmJj3t8XxF1F/KpBBKrq6fh1qgHuGEBYyx5cv1XA="
+
+before_install:
+  - sudo apt-get -y install libcairo2-dev libjpeg8-dev libpango1.0-dev libgif-dev libglew-dev
+
+install:
+  - npm install --build-from-source
+
+script:
+  - npm test
+
+after_success:
+  - '[[ $(git show -s --format=%B $TRAVIS_COMMIT) =~ "[publish binary]" ]] && node-pre-gyp package && node-pre-gyp publish'
