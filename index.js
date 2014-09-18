@@ -16,7 +16,7 @@ var WebGLRenderingContext = GL.WebGLRenderingContext;
             this._gl_context = new WebGLRenderingContext();
             return this._gl_context;
         }
-        return pgetContext.call(this, contextid);
+        return pGetContext.call(this, contextid);
     }
     try {
         var Canvas = require("canvas");
