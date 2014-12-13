@@ -12,6 +12,7 @@
     "install": "node-gyp rebuild"
   },
   "dependencies": {
+    "nan": "~1.4.1",
     "node-gyp": "~0.9.5"
   },
   "devDependencies": {

@@ -14,16 +14,16 @@
 #include <cstdlib>
 #include <v8.h>
 #include <node.h>
-#include "arch_wrapper.h"
+
 #include "webgl.h"
 
 using namespace v8;
 
 Persistent<FunctionTemplate> webgl_template;
 
-#define JS_SET_GL_CONSTANT(tmpl, name) tmpl->Set(String::New(#name), Integer::New(GL_ ## name));
-#define JS_SET_NUM_CONSTANT(tmpl, name, val) tmpl->Set(String::New("UNPACK_FLIP_Y_WEBGL"), Integer::New(val));
-#define JS_SET_METHOD(tmpl, name, fn) tmpl->Set(String::New(name), FunctionTemplate::New(fn, Handle<Value>(), sig));
+#define JS_SET_GL_CONSTANT(tmpl, name) tmpl->Set(NanNew<String>(#name), NanNew<Integer>(GL_ ## name))
+#define JS_SET_NUM_CONSTANT(tmpl, name, val) tmpl->Set(NanNew<String>(name), NanNew<Integer>(val))
+#define JS_SET_METHOD(tmpl, name, fn) NODE_SET_PROTOTYPE_METHOD(tmpl, name, fn)
 
 namespace HeadlessGL {
 
@@ -32,155 +32,155 @@ void Init(Handle<Object> target) {
   atexit(WebGL::disposeAll);
 
   // Create the WebGL template
-  webgl_template = Persistent<FunctionTemplate>::New(FunctionTemplate::New(WebGL::New));
-  Handle<Signature> sig = Signature::New(webgl_template);
-  webgl_template->InstanceTemplate()->SetInternalFieldCount(1);
-  webgl_template->SetClassName(String::New("WebGLRenderingContext"));
+  Local<FunctionTemplate> tpl = NanNew<FunctionTemplate>(WebGL::New);
+  NanAssignPersistent(webgl_template, tpl);
+  tpl->InstanceTemplate()->SetInternalFieldCount(1);
+  tpl->SetClassName(NanNew<String>("WebGLRenderingContext"));
 
   //Add methods
-  Handle<ObjectTemplate> proto = webgl_template->PrototypeTemplate();
-  JS_SET_METHOD(proto, "uniform1f", WebGL::Uniform1f);
-  JS_SET_METHOD(proto, "uniform2f", WebGL::Uniform2f);
-  JS_SET_METHOD(proto, "uniform3f", WebGL::Uniform3f);
-  JS_SET_METHOD(proto, "uniform4f", WebGL::Uniform4f);
-  JS_SET_METHOD(proto, "uniform1i", WebGL::Uniform1i);
-  JS_SET_METHOD(proto, "uniform2i", WebGL::Uniform2i);
-  JS_SET_METHOD(proto, "uniform3i", WebGL::Uniform3i);
-  JS_SET_METHOD(proto, "uniform4i", WebGL::Uniform4i);
-  JS_SET_METHOD(proto, "uniform1fv", WebGL::Uniform1fv);
-  JS_SET_METHOD(proto, "uniform2fv", WebGL::Uniform2fv);
-  JS_SET_METHOD(proto, "uniform3fv", WebGL::Uniform3fv);
-  JS_SET_METHOD(proto, "uniform4fv", WebGL::Uniform4fv);
-  JS_SET_METHOD(proto, "uniform1iv", WebGL::Uniform1iv);
-  JS_SET_METHOD(proto, "uniform2iv", WebGL::Uniform2iv);
-  JS_SET_METHOD(proto, "uniform3iv", WebGL::Uniform3iv);
-  JS_SET_METHOD(proto, "uniform4iv", WebGL::Uniform4iv);
-  JS_SET_METHOD(proto, "pixelStorei", WebGL::PixelStorei);
-  JS_SET_METHOD(proto, "bindAttribLocation", WebGL::BindAttribLocation);
-  JS_SET_METHOD(proto, "getError", WebGL::GetError);
-  JS_SET_METHOD(proto, "drawArrays", WebGL::DrawArrays);
-  JS_SET_METHOD(proto, "uniformMatrix2fv", WebGL::UniformMatrix2fv);
-  JS_SET_METHOD(proto, "uniformMatrix3fv", WebGL::UniformMatrix3fv);
-  JS_SET_METHOD(proto, "uniformMatrix4fv", WebGL::UniformMatrix4fv);
+  Handle<ObjectTemplate> proto = tpl->PrototypeTemplate();
+  JS_SET_METHOD(tpl, "uniform1f", WebGL::Uniform1f);
+  JS_SET_METHOD(tpl, "uniform2f", WebGL::Uniform2f);
+  JS_SET_METHOD(tpl, "uniform3f", WebGL::Uniform3f);
+  JS_SET_METHOD(tpl, "uniform4f", WebGL::Uniform4f);
+  JS_SET_METHOD(tpl, "uniform1i", WebGL::Uniform1i);
+  JS_SET_METHOD(tpl, "uniform2i", WebGL::Uniform2i);
+  JS_SET_METHOD(tpl, "uniform3i", WebGL::Uniform3i);
+  JS_SET_METHOD(tpl, "uniform4i", WebGL::Uniform4i);
+  JS_SET_METHOD(tpl, "uniform1fv", WebGL::Uniform1fv);
+  JS_SET_METHOD(tpl, "uniform2fv", WebGL::Uniform2fv);
+  JS_SET_METHOD(tpl, "uniform3fv", WebGL::Uniform3fv);
+  JS_SET_METHOD(tpl, "uniform4fv", WebGL::Uniform4fv);
+  JS_SET_METHOD(tpl, "uniform1iv", WebGL::Uniform1iv);
+  JS_SET_METHOD(tpl, "uniform2iv", WebGL::Uniform2iv);
+  JS_SET_METHOD(tpl, "uniform3iv", WebGL::Uniform3iv);
+  JS_SET_METHOD(tpl, "uniform4iv", WebGL::Uniform4iv);
+  JS_SET_METHOD(tpl, "pixelStorei", WebGL::PixelStorei);
+  JS_SET_METHOD(tpl, "bindAttribLocation", WebGL::BindAttribLocation);
+  JS_SET_METHOD(tpl, "getError", WebGL::GetError);
+  JS_SET_METHOD(tpl, "drawArrays", WebGL::DrawArrays);
+  JS_SET_METHOD(tpl, "uniformMatrix2fv", WebGL::UniformMatrix2fv);
+  JS_SET_METHOD(tpl, "uniformMatrix3fv", WebGL::UniformMatrix3fv);
+  JS_SET_METHOD(tpl, "uniformMatrix4fv", WebGL::UniformMatrix4fv);
 
-  JS_SET_METHOD(proto, "generateMipmap", WebGL::GenerateMipmap);
+  JS_SET_METHOD(tpl, "generateMipmap", WebGL::GenerateMipmap);
 
-  JS_SET_METHOD(proto, "getAttribLocation", WebGL::GetAttribLocation);
-  JS_SET_METHOD(proto, "depthFunc", WebGL::DepthFunc);
-  JS_SET_METHOD(proto, "viewport", WebGL::Viewport);
-  JS_SET_METHOD(proto, "createShader", WebGL::CreateShader);
-  JS_SET_METHOD(proto, "shaderSource", WebGL::ShaderSource);
-  JS_SET_METHOD(proto, "compileShader", WebGL::CompileShader);
-  JS_SET_METHOD(proto, "getShaderParameter", WebGL::GetShaderParameter);
-  JS_SET_METHOD(proto, "getShaderInfoLog", WebGL::GetShaderInfoLog);
-  JS_SET_METHOD(proto, "createProgram", WebGL::CreateProgram);
-  JS_SET_METHOD(proto, "attachShader", WebGL::AttachShader);
-  JS_SET_METHOD(proto, "linkProgram", WebGL::LinkProgram);
-  JS_SET_METHOD(proto, "getProgramParameter", WebGL::GetProgramParameter);
-  JS_SET_METHOD(proto, "getUniformLocation", WebGL::GetUniformLocation);
-  JS_SET_METHOD(proto, "clearColor", WebGL::ClearColor);
-  JS_SET_METHOD(proto, "clearDepth", WebGL::ClearDepth);
+  JS_SET_METHOD(tpl, "getAttribLocation", WebGL::GetAttribLocation);
+  JS_SET_METHOD(tpl, "depthFunc", WebGL::DepthFunc);
+  JS_SET_METHOD(tpl, "viewport", WebGL::Viewport);
+  JS_SET_METHOD(tpl, "createShader", WebGL::CreateShader);
+  JS_SET_METHOD(tpl, "shaderSource", WebGL::ShaderSource);
+  JS_SET_METHOD(tpl, "compileShader", WebGL::CompileShader);
+  JS_SET_METHOD(tpl, "getShaderParameter", WebGL::GetShaderParameter);
+  JS_SET_METHOD(tpl, "getShaderInfoLog", WebGL::GetShaderInfoLog);
+  JS_SET_METHOD(tpl, "createProgram", WebGL::CreateProgram);
+  JS_SET_METHOD(tpl, "attachShader", WebGL::AttachShader);
+  JS_SET_METHOD(tpl, "linkProgram", WebGL::LinkProgram);
+  JS_SET_METHOD(tpl, "getProgramParameter", WebGL::GetProgramParameter);
+  JS_SET_METHOD(tpl, "getUniformLocation", WebGL::GetUniformLocation);
+  JS_SET_METHOD(tpl, "clearColor", WebGL::ClearColor);
+  JS_SET_METHOD(tpl, "clearDepth", WebGL::ClearDepth);
 
-  JS_SET_METHOD(proto, "disable", WebGL::Disable);
-  JS_SET_METHOD(proto, "createTexture", WebGL::CreateTexture);
-  JS_SET_METHOD(proto, "bindTexture", WebGL::BindTexture);
-  JS_SET_METHOD(proto, "texImage2D", WebGL::TexImage2D);
-  JS_SET_METHOD(proto, "texParameteri", WebGL::TexParameteri);
-  JS_SET_METHOD(proto, "texParameterf", WebGL::TexParameterf);
-  JS_SET_METHOD(proto, "clear", WebGL::Clear);
-  JS_SET_METHOD(proto, "useProgram", WebGL::UseProgram);
-  JS_SET_METHOD(proto, "createFramebuffer", WebGL::CreateFramebuffer);
-  JS_SET_METHOD(proto, "bindFramebuffer", WebGL::BindFramebuffer);
-  JS_SET_METHOD(proto, "framebufferTexture2D", WebGL::FramebufferTexture2D);
-  JS_SET_METHOD(proto, "createBuffer", WebGL::CreateBuffer);
-  JS_SET_METHOD(proto, "bindBuffer", WebGL::BindBuffer);
-  JS_SET_METHOD(proto, "bufferData", WebGL::BufferData);
-  JS_SET_METHOD(proto, "bufferSubData", WebGL::BufferSubData);
-  JS_SET_METHOD(proto, "enable", WebGL::Enable);
-  JS_SET_METHOD(proto, "blendEquation", WebGL::BlendEquation);
-  JS_SET_METHOD(proto, "blendFunc", WebGL::BlendFunc);
-  JS_SET_METHOD(proto, "enableVertexAttribArray", WebGL::EnableVertexAttribArray);
-  JS_SET_METHOD(proto, "vertexAttribPointer", WebGL::VertexAttribPointer);
-  JS_SET_METHOD(proto, "activeTexture", WebGL::ActiveTexture);
-  JS_SET_METHOD(proto, "drawElements", WebGL::DrawElements);
-  JS_SET_METHOD(proto, "flush", WebGL::Flush);
-  JS_SET_METHOD(proto, "finish", WebGL::Finish);
+  JS_SET_METHOD(tpl, "disable", WebGL::Disable);
+  JS_SET_METHOD(tpl, "createTexture", WebGL::CreateTexture);
+  JS_SET_METHOD(tpl, "bindTexture", WebGL::BindTexture);
+  JS_SET_METHOD(tpl, "texImage2D", WebGL::TexImage2D);
+  JS_SET_METHOD(tpl, "texParameteri", WebGL::TexParameteri);
+  JS_SET_METHOD(tpl, "texParameterf", WebGL::TexParameterf);
+  JS_SET_METHOD(tpl, "clear", WebGL::Clear);
+  JS_SET_METHOD(tpl, "useProgram", WebGL::UseProgram);
+  JS_SET_METHOD(tpl, "createFramebuffer", WebGL::CreateFramebuffer);
+  JS_SET_METHOD(tpl, "bindFramebuffer", WebGL::BindFramebuffer);
+  JS_SET_METHOD(tpl, "framebufferTexture2D", WebGL::FramebufferTexture2D);
+  JS_SET_METHOD(tpl, "createBuffer", WebGL::CreateBuffer);
+  JS_SET_METHOD(tpl, "bindBuffer", WebGL::BindBuffer);
+  JS_SET_METHOD(tpl, "bufferData", WebGL::BufferData);
+  JS_SET_METHOD(tpl, "bufferSubData", WebGL::BufferSubData);
+  JS_SET_METHOD(tpl, "enable", WebGL::Enable);
+  JS_SET_METHOD(tpl, "blendEquation", WebGL::BlendEquation);
+  JS_SET_METHOD(tpl, "blendFunc", WebGL::BlendFunc);
+  JS_SET_METHOD(tpl, "enableVertexAttribArray", WebGL::EnableVertexAttribArray);
+  JS_SET_METHOD(tpl, "vertexAttribPointer", WebGL::VertexAttribPointer);
+  JS_SET_METHOD(tpl, "activeTexture", WebGL::ActiveTexture);
+  JS_SET_METHOD(tpl, "drawElements", WebGL::DrawElements);
+  JS_SET_METHOD(tpl, "flush", WebGL::Flush);
+  JS_SET_METHOD(tpl, "finish", WebGL::Finish);
 
-  JS_SET_METHOD(proto, "vertexAttrib1f", WebGL::VertexAttrib1f);
-  JS_SET_METHOD(proto, "vertexAttrib2f", WebGL::VertexAttrib2f);
-  JS_SET_METHOD(proto, "vertexAttrib3f", WebGL::VertexAttrib3f);
-  JS_SET_METHOD(proto, "vertexAttrib4f", WebGL::VertexAttrib4f);
-  JS_SET_METHOD(proto, "vertexAttrib1fv", WebGL::VertexAttrib1fv);
-  JS_SET_METHOD(proto, "vertexAttrib2fv", WebGL::VertexAttrib2fv);
-  JS_SET_METHOD(proto, "vertexAttrib3fv", WebGL::VertexAttrib3fv);
-  JS_SET_METHOD(proto, "vertexAttrib4fv", WebGL::VertexAttrib4fv);
+  JS_SET_METHOD(tpl, "vertexAttrib1f", WebGL::VertexAttrib1f);
+  JS_SET_METHOD(tpl, "vertexAttrib2f", WebGL::VertexAttrib2f);
+  JS_SET_METHOD(tpl, "vertexAttrib3f", WebGL::VertexAttrib3f);
+  JS_SET_METHOD(tpl, "vertexAttrib4f", WebGL::VertexAttrib4f);
+  JS_SET_METHOD(tpl, "vertexAttrib1fv", WebGL::VertexAttrib1fv);
+  JS_SET_METHOD(tpl, "vertexAttrib2fv", WebGL::VertexAttrib2fv);
+  JS_SET_METHOD(tpl, "vertexAttrib3fv", WebGL::VertexAttrib3fv);
+  JS_SET_METHOD(tpl, "vertexAttrib4fv", WebGL::VertexAttrib4fv);
 
-  JS_SET_METHOD(proto, "blendColor", WebGL::BlendColor);
-  JS_SET_METHOD(proto, "blendEquationSeparate", WebGL::BlendEquationSeparate);
-  JS_SET_METHOD(proto, "blendFuncSeparate", WebGL::BlendFuncSeparate);
-  JS_SET_METHOD(proto, "clearStencil", WebGL::ClearStencil);
-  JS_SET_METHOD(proto, "colorMask", WebGL::ColorMask);
-  JS_SET_METHOD(proto, "copyTexImage2D", WebGL::CopyTexImage2D);
-  JS_SET_METHOD(proto, "copyTexSubImage2D", WebGL::CopyTexSubImage2D);
-  JS_SET_METHOD(proto, "cullFace", WebGL::CullFace);
-  JS_SET_METHOD(proto, "depthMask", WebGL::DepthMask);
-  JS_SET_METHOD(proto, "depthRange", WebGL::DepthRange);
-  JS_SET_METHOD(proto, "disableVertexAttribArray", WebGL::DisableVertexAttribArray);
-  JS_SET_METHOD(proto, "hint", WebGL::Hint);
-  JS_SET_METHOD(proto, "isEnabled", WebGL::IsEnabled);
-  JS_SET_METHOD(proto, "lineWidth", WebGL::LineWidth);
-  JS_SET_METHOD(proto, "polygonOffset", WebGL::PolygonOffset);
+  JS_SET_METHOD(tpl, "blendColor", WebGL::BlendColor);
+  JS_SET_METHOD(tpl, "blendEquationSeparate", WebGL::BlendEquationSeparate);
+  JS_SET_METHOD(tpl, "blendFuncSeparate", WebGL::BlendFuncSeparate);
+  JS_SET_METHOD(tpl, "clearStencil", WebGL::ClearStencil);
+  JS_SET_METHOD(tpl, "colorMask", WebGL::ColorMask);
+  JS_SET_METHOD(tpl, "copyTexImage2D", WebGL::CopyTexImage2D);
+  JS_SET_METHOD(tpl, "copyTexSubImage2D", WebGL::CopyTexSubImage2D);
+  JS_SET_METHOD(tpl, "cullFace", WebGL::CullFace);
+  JS_SET_METHOD(tpl, "depthMask", WebGL::DepthMask);
+  JS_SET_METHOD(tpl, "depthRange", WebGL::DepthRange);
+  JS_SET_METHOD(tpl, "disableVertexAttribArray", WebGL::DisableVertexAttribArray);
+  JS_SET_METHOD(tpl, "hint", WebGL::Hint);
+  JS_SET_METHOD(tpl, "isEnabled", WebGL::IsEnabled);
+  JS_SET_METHOD(tpl, "lineWidth", WebGL::LineWidth);
+  JS_SET_METHOD(tpl, "polygonOffset", WebGL::PolygonOffset);
 
-  JS_SET_METHOD(proto, "scissor", WebGL::Scissor);
-  JS_SET_METHOD(proto, "stencilFunc", WebGL::StencilFunc);
-  JS_SET_METHOD(proto, "stencilFuncSeparate", WebGL::StencilFuncSeparate);
-  JS_SET_METHOD(proto, "stencilMask", WebGL::StencilMask);
-  JS_SET_METHOD(proto, "stencilMaskSeparate", WebGL::StencilMaskSeparate);
-  JS_SET_METHOD(proto, "stencilOp", WebGL::StencilOp);
-  JS_SET_METHOD(proto, "stencilOpSeparate", WebGL::StencilOpSeparate);
-  JS_SET_METHOD(proto, "bindRenderbuffer", WebGL::BindRenderbuffer);
-  JS_SET_METHOD(proto, "createRenderbuffer", WebGL::CreateRenderbuffer);
+  JS_SET_METHOD(tpl, "scissor", WebGL::Scissor);
+  JS_SET_METHOD(tpl, "stencilFunc", WebGL::StencilFunc);
+  JS_SET_METHOD(tpl, "stencilFuncSeparate", WebGL::StencilFuncSeparate);
+  JS_SET_METHOD(tpl, "stencilMask", WebGL::StencilMask);
+  JS_SET_METHOD(tpl, "stencilMaskSeparate", WebGL::StencilMaskSeparate);
+  JS_SET_METHOD(tpl, "stencilOp", WebGL::StencilOp);
+  JS_SET_METHOD(tpl, "stencilOpSeparate", WebGL::StencilOpSeparate);
+  JS_SET_METHOD(tpl, "bindRenderbuffer", WebGL::BindRenderbuffer);
+  JS_SET_METHOD(tpl, "createRenderbuffer", WebGL::CreateRenderbuffer);
 
-  JS_SET_METHOD(proto, "deleteBuffer", WebGL::DeleteBuffer);
-  JS_SET_METHOD(proto, "deleteFramebuffer", WebGL::DeleteFramebuffer);
-  JS_SET_METHOD(proto, "deleteProgram", WebGL::DeleteProgram);
-  JS_SET_METHOD(proto, "deleteRenderbuffer", WebGL::DeleteRenderbuffer);
-  JS_SET_METHOD(proto, "deleteShader", WebGL::DeleteShader);
-  JS_SET_METHOD(proto, "deleteTexture", WebGL::DeleteTexture);
-  JS_SET_METHOD(proto, "detachShader", WebGL::DetachShader);
-  JS_SET_METHOD(proto, "framebufferRenderbuffer", WebGL::FramebufferRenderbuffer);
-  JS_SET_METHOD(proto, "getVertexAttribOffset", WebGL::GetVertexAttribOffset);
+  JS_SET_METHOD(tpl, "deleteBuffer", WebGL::DeleteBuffer);
+  JS_SET_METHOD(tpl, "deleteFramebuffer", WebGL::DeleteFramebuffer);
+  JS_SET_METHOD(tpl, "deleteProgram", WebGL::DeleteProgram);
+  JS_SET_METHOD(tpl, "deleteRenderbuffer", WebGL::DeleteRenderbuffer);
+  JS_SET_METHOD(tpl, "deleteShader", WebGL::DeleteShader);
+  JS_SET_METHOD(tpl, "deleteTexture", WebGL::DeleteTexture);
+  JS_SET_METHOD(tpl, "detachShader", WebGL::DetachShader);
+  JS_SET_METHOD(tpl, "framebufferRenderbuffer", WebGL::FramebufferRenderbuffer);
+  JS_SET_METHOD(tpl, "getVertexAttribOffset", WebGL::GetVertexAttribOffset);
 
-  JS_SET_METHOD(proto, "isBuffer", WebGL::IsBuffer);
-  JS_SET_METHOD(proto, "isFramebuffer", WebGL::IsFramebuffer);
-  JS_SET_METHOD(proto, "isProgram", WebGL::IsProgram);
-  JS_SET_METHOD(proto, "isRenderbuffer", WebGL::IsRenderbuffer);
-  JS_SET_METHOD(proto, "isShader", WebGL::IsShader);
-  JS_SET_METHOD(proto, "isTexture", WebGL::IsTexture);
+  JS_SET_METHOD(tpl, "isBuffer", WebGL::IsBuffer);
+  JS_SET_METHOD(tpl, "isFramebuffer", WebGL::IsFramebuffer);
+  JS_SET_METHOD(tpl, "isProgram", WebGL::IsProgram);
+  JS_SET_METHOD(tpl, "isRenderbuffer", WebGL::IsRenderbuffer);
+  JS_SET_METHOD(tpl, "isShader", WebGL::IsShader);
+  JS_SET_METHOD(tpl, "isTexture", WebGL::IsTexture);
 
-  JS_SET_METHOD(proto, "renderbufferStorage", WebGL::RenderbufferStorage);
-  JS_SET_METHOD(proto, "getShaderSource", WebGL::GetShaderSource);
-  JS_SET_METHOD(proto, "validateProgram", WebGL::ValidateProgram);
+  JS_SET_METHOD(tpl, "renderbufferStorage", WebGL::RenderbufferStorage);
+  JS_SET_METHOD(tpl, "getShaderSource", WebGL::GetShaderSource);
+  JS_SET_METHOD(tpl, "validateProgram", WebGL::ValidateProgram);
 
-  JS_SET_METHOD(proto, "texSubImage2D", WebGL::TexSubImage2D);
-  JS_SET_METHOD(proto, "readPixels", WebGL::ReadPixels);
-  JS_SET_METHOD(proto, "getTexParameter", WebGL::GetTexParameter);
-  JS_SET_METHOD(proto, "getActiveAttrib", WebGL::GetActiveAttrib);
-  JS_SET_METHOD(proto, "getActiveUniform", WebGL::GetActiveUniform);
-  JS_SET_METHOD(proto, "getAttachedShaders", WebGL::GetAttachedShaders);
-  JS_SET_METHOD(proto, "getParameter", WebGL::GetParameter);
-  JS_SET_METHOD(proto, "getBufferParameter", WebGL::GetBufferParameter);
-  JS_SET_METHOD(proto, "getFramebufferAttachmentParameter", WebGL::GetFramebufferAttachmentParameter);
-  JS_SET_METHOD(proto, "getProgramInfoLog", WebGL::GetProgramInfoLog);
-  JS_SET_METHOD(proto, "getRenderbufferParameter", WebGL::GetRenderbufferParameter);
-  JS_SET_METHOD(proto, "getVertexAttrib", WebGL::GetVertexAttrib);
-  JS_SET_METHOD(proto, "getSupportedExtensions", WebGL::GetSupportedExtensions);
-  JS_SET_METHOD(proto, "getExtension", WebGL::GetExtension);
-  JS_SET_METHOD(proto, "checkFramebufferStatus", WebGL::CheckFramebufferStatus);
+  JS_SET_METHOD(tpl, "texSubImage2D", WebGL::TexSubImage2D);
+  JS_SET_METHOD(tpl, "readPixels", WebGL::ReadPixels);
+  JS_SET_METHOD(tpl, "getTexParameter", WebGL::GetTexParameter);
+  JS_SET_METHOD(tpl, "getActiveAttrib", WebGL::GetActiveAttrib);
+  JS_SET_METHOD(tpl, "getActiveUniform", WebGL::GetActiveUniform);
+  JS_SET_METHOD(tpl, "getAttachedShaders", WebGL::GetAttachedShaders);
+  JS_SET_METHOD(tpl, "getParameter", WebGL::GetParameter);
+  JS_SET_METHOD(tpl, "getBufferParameter", WebGL::GetBufferParameter);
+  JS_SET_METHOD(tpl, "getFramebufferAttachmentParameter", WebGL::GetFramebufferAttachmentParameter);
+  JS_SET_METHOD(tpl, "getProgramInfoLog", WebGL::GetProgramInfoLog);
+  JS_SET_METHOD(tpl, "getRenderbufferParameter", WebGL::GetRenderbufferParameter);
+  JS_SET_METHOD(tpl, "getVertexAttrib", WebGL::GetVertexAttrib);
+  JS_SET_METHOD(tpl, "getSupportedExtensions", WebGL::GetSupportedExtensions);
+  JS_SET_METHOD(tpl, "getExtension", WebGL::GetExtension);
+  JS_SET_METHOD(tpl, "checkFramebufferStatus", WebGL::CheckFramebufferStatus);
 
-  JS_SET_METHOD(proto, "frontFace", WebGL::FrontFace);
-  JS_SET_METHOD(proto, "sampleCoverage", WebGL::SampleCoverage);
-  JS_SET_METHOD(proto, "destroy", WebGL::Destroy);
+  JS_SET_METHOD(tpl, "frontFace", WebGL::FrontFace);
+  JS_SET_METHOD(tpl, "sampleCoverage", WebGL::SampleCoverage);
+  JS_SET_METHOD(tpl, "destroy", WebGL::Destroy);
 
 
   // OpenGL ES 2.1 constants
@@ -637,7 +637,7 @@ void Init(Handle<Object> target) {
   JS_SET_NUM_CONSTANT(proto, "BROWSER_DEFAULT_WEBGL", 0x9244);
 
   // Export function
-  target->Set(String::New("WebGLRenderingContext"), webgl_template->GetFunction());
+  target->Set(NanNew<String>("WebGLRenderingContext"), tpl->GetFunction());
 }
 
 } // end namespace HeadlessGL

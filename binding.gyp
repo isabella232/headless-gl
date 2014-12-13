@@ -19,6 +19,7 @@
       ],
       'include_dirs': [
         './deps/include',
+        "<!(node -e \"require('nan')\")",
       ],
       'library_dirs': [
         './deps/<(platform)',
