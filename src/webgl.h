@@ -17,10 +17,11 @@
 #include <vector>
 
 #include <v8.h>
-// #include <node.h>
+#include <nan.h>
+
 #include "arch_wrapper.h"
 
-#define JS_METHOD(name) static v8::Handle<v8::Value> name(const v8::Arguments& args)
+#define JS_METHOD(name) static NAN_METHOD(name)
 
 namespace HeadlessGL {
 

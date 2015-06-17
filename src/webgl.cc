@@ -7,30 +7,23 @@
 
 #include <v8.h>
 #include <node.h>
+#include <nan.h>
 
 #include "webgl.h"
 
-#define JS_METHOD(name) v8::Handle<v8::Value> WebGL::name(const v8::Arguments& args)
+#define JS_METHOD(name) NAN_METHOD(WebGL::name)
 
 #define JS_BOILERPLATE   \
-  HandleScope scope; \
+  NanScope(); \
   if(args.This()->InternalFieldCount() <= 0) { \
-    return ThrowError("Invalid WebGL Object"); \
+    return NanThrowError("Invalid WebGL Object"); \
   } \
   WebGL* inst = node::ObjectWrap::Unwrap<WebGL>(args.This()); \
   if(!(inst && inst->checkContext())) { \
-    return ThrowError("Invalid GL context"); \
+    return NanThrowError("Invalid GL context"); \
   }
 
 using namespace v8;
-
-Handle<Value> ThrowError(const char *msg) {
-  return ThrowException(Exception::Error(String::New(msg)));
-}
-
-Handle<Value> ThrowTypeError(const char *msg) {
-  return ThrowException(Exception::TypeError(String::New(msg)));
-}
 
 namespace HeadlessGL {
 
@@ -238,32 +231,32 @@ void WebGL::disposeAll() {
   }
 }
 
-Handle<Value> WebGL::New(const Arguments &args) {
-  HandleScope scope;
+NAN_METHOD(WebGL::New) {
+  NanScope();
 
   if (args.Length() < 2) {
-    return ThrowException(Exception::TypeError(String::New("Width and height arguments required")));
+    return NanThrowTypeError("Width and height arguments required");
   }
 
   int width = args[0]->Int32Value();
   int height = args[1]->Int32Value();
 
   if (width <= 0) {
-    return ThrowException(Exception::TypeError(String::New("Width is not a positive integer")));
+    return NanThrowTypeError("Width is not a positive integer");
   } else if (height <= 0) {
-    return ThrowException(Exception::TypeError(String::New("Height is not a positive integer")));
+    return NanThrowTypeError("Height is not a positive integer");
   }
 
   WebGL *instance = new WebGL(width, height);
   if (!instance->initialized) {
-    return ThrowError("Error creating WebGLRenderingContext");
+    return NanThrowError("Error creating WebGLRenderingContext");
   }
 
-  args.This()->Set(String::New("drawingBufferWidth"), Integer::New(width), static_cast<PropertyAttribute>(ReadOnly | DontDelete));
-  args.This()->Set(String::New("drawingBufferHeight"), Integer::New(height), static_cast<PropertyAttribute>(ReadOnly | DontDelete));
+  args.This()->ForceSet(NanNew<String>("drawingBufferWidth"), NanNew<Integer>(width), static_cast<PropertyAttribute>(ReadOnly | DontDelete));
+  args.This()->ForceSet(NanNew<String>("drawingBufferHeight"), NanNew<Integer>(height), static_cast<PropertyAttribute>(ReadOnly | DontDelete));
 
   instance->Wrap(args.This());
-  return args.This();
+  NanReturnThis();
 }
 
 
@@ -313,7 +306,7 @@ inline Type *getArrayData(Local<Value> arg, int *num = NULL) {
 
   if (!arg->IsNull()) {
     if (arg->IsArray()) {
-      Local<Array> arr = Array::Cast(*arg);
+      Local<Array> arr = Local<Array>::Cast(arg);
       if (num) *num = arr->Length();
       data = reinterpret_cast<Type *>(arr->GetIndexedPropertiesExternalArrayData());
     } else if (arg->IsObject()) {
@@ -338,7 +331,7 @@ JS_METHOD(Destroy) {
   JS_BOILERPLATE
 
   inst->dispose();
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(Uniform1f) {
@@ -348,7 +341,7 @@ JS_METHOD(Uniform1f) {
   float x = (float) args[1]->NumberValue();
 
   glUniform1f(location, x);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(Uniform2f) {
@@ -359,7 +352,7 @@ JS_METHOD(Uniform2f) {
   float y = (float) args[2]->NumberValue();
 
   glUniform2f(location, x, y);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(Uniform3f) {
@@ -371,7 +364,7 @@ JS_METHOD(Uniform3f) {
   float z = (float) args[3]->NumberValue();
 
   glUniform3f(location, x, y, z);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(Uniform4f) {
@@ -384,7 +377,7 @@ JS_METHOD(Uniform4f) {
   float w = (float) args[4]->NumberValue();
 
   glUniform4f(location, x, y, z, w);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(Uniform1i) {
@@ -394,7 +387,7 @@ JS_METHOD(Uniform1i) {
   int x = args[1]->Int32Value();
 
   glUniform1i(location, x);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(Uniform2i) {
@@ -405,7 +398,7 @@ JS_METHOD(Uniform2i) {
   int y = args[2]->Int32Value();
 
   glUniform2i(location, x, y);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(Uniform3i) {
@@ -417,7 +410,7 @@ JS_METHOD(Uniform3i) {
   int z = args[3]->Int32Value();
 
   glUniform3i(location, x, y, z);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(Uniform4i) {
@@ -430,7 +423,7 @@ JS_METHOD(Uniform4i) {
   int w = args[4]->Int32Value();
 
   glUniform4i(location, x, y, z, w);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(Uniform1fv) {
@@ -440,7 +433,7 @@ JS_METHOD(Uniform1fv) {
   int num = 0;
   GLfloat *ptr = getArrayData<GLfloat>(args[1], &num);
   glUniform1fv(location, num, ptr);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(Uniform2fv) {
@@ -461,7 +454,7 @@ JS_METHOD(Uniform2fv) {
     // TODO: handle
   }
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(Uniform3fv) {
@@ -482,7 +475,7 @@ JS_METHOD(Uniform3fv) {
     // TODO: handle
   }
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(Uniform4fv) {
@@ -505,7 +498,7 @@ JS_METHOD(Uniform4fv) {
     // TODO: handle
   }
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(Uniform1iv) {
@@ -516,7 +509,7 @@ JS_METHOD(Uniform1iv) {
   GLint *ptr = getArrayData<GLint>(args[1], &num);
 
   glUniform1iv(location, num, ptr);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(Uniform2iv) {
@@ -528,7 +521,7 @@ JS_METHOD(Uniform2iv) {
   num /= 2;
 
   glUniform2iv(location, num, ptr);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(Uniform3iv) {
@@ -539,7 +532,7 @@ JS_METHOD(Uniform3iv) {
   GLint *ptr = getArrayData<GLint>(args[1], &num);
   num /= 3;
   glUniform3iv(location, num, ptr);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(Uniform4iv) {
@@ -550,7 +543,7 @@ JS_METHOD(Uniform4iv) {
   GLint *ptr = getArrayData<GLint>(args[1], &num);
   num /= 4;
   glUniform4iv(location, num, ptr);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(PixelStorei) {
@@ -561,7 +554,7 @@ JS_METHOD(PixelStorei) {
 
   glPixelStorei(pname, param);
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(BindAttribLocation) {
@@ -573,14 +566,14 @@ JS_METHOD(BindAttribLocation) {
 
   glBindAttribLocation(program, index, *name);
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 
 JS_METHOD(GetError) {
   JS_BOILERPLATE
 
-  return scope.Close(Number::New(glGetError()));
+  NanReturnValue(NanNew<Number>(glGetError()));
 }
 
 
@@ -593,7 +586,7 @@ JS_METHOD(DrawArrays) {
 
   glDrawArrays(mode, first, count);
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(UniformMatrix2fv) {
@@ -606,12 +599,12 @@ JS_METHOD(UniformMatrix2fv) {
   GLfloat *data = getArrayData<GLfloat>(args[2], &count);
 
   if (count < 4) {
-    return ThrowError("Not enough data for UniformMatrix2fv");
+    return NanThrowError("Not enough data for UniformMatrix2fv");
   }
 
   glUniformMatrix2fv(location, count / 4, transpose, data);
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(UniformMatrix3fv) {
@@ -623,12 +616,12 @@ JS_METHOD(UniformMatrix3fv) {
   GLfloat *data = getArrayData<GLfloat>(args[2], &count);
 
   if (count < 9) {
-    return ThrowError("Not enough data for UniformMatrix3fv");
+    return NanThrowError("Not enough data for UniformMatrix3fv");
   }
 
   glUniformMatrix3fv(location, count / 9, transpose, data);
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(UniformMatrix4fv) {
@@ -640,12 +633,12 @@ JS_METHOD(UniformMatrix4fv) {
   GLfloat *data = getArrayData<GLfloat>(args[2], &count);
 
   if (count < 16) {
-    return ThrowError("Not enough data for UniformMatrix4fv");
+    return NanThrowError("Not enough data for UniformMatrix4fv");
   }
 
   glUniformMatrix4fv(location, count / 16, transpose, data);
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(GenerateMipmap) {
@@ -654,7 +647,7 @@ JS_METHOD(GenerateMipmap) {
   GLint target = args[0]->Int32Value();
   glGenerateMipmap(target);
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(GetAttribLocation) {
@@ -663,7 +656,7 @@ JS_METHOD(GetAttribLocation) {
   int program = args[0]->Int32Value();
   String::Utf8Value name(args[1]);
 
-  return scope.Close(Number::New(glGetAttribLocation(program, *name)));
+  NanReturnValue(NanNew<Number>(glGetAttribLocation(program, *name)));
 }
 
 
@@ -672,7 +665,7 @@ JS_METHOD(DepthFunc) {
 
   glDepthFunc(args[0]->Int32Value());
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 
@@ -686,7 +679,7 @@ JS_METHOD(Viewport) {
 
   glViewport(x, y, width, height);
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(CreateShader) {
@@ -694,7 +687,7 @@ JS_METHOD(CreateShader) {
 
   GLuint shader = glCreateShader(args[0]->Int32Value());
   inst->registerGLObj(GLOBJECT_TYPE_SHADER, shader);
-  return scope.Close(Number::New(shader));
+  NanReturnValue(NanNew<Number>(shader));
 }
 
 
@@ -710,7 +703,7 @@ JS_METHOD(ShaderSource) {
 
   glShaderSource  (id, 1, codes, &length);
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 
@@ -719,7 +712,7 @@ JS_METHOD(CompileShader) {
 
   glCompileShader(args[0]->Int32Value());
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(FrontFace) {
@@ -727,7 +720,7 @@ JS_METHOD(FrontFace) {
 
   glFrontFace(args[0]->Int32Value());
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 
@@ -741,16 +734,16 @@ JS_METHOD(GetShaderParameter) {
   case GL_DELETE_STATUS:
   case GL_COMPILE_STATUS:
     glGetShaderiv(shader, pname, &value);
-    return scope.Close(v8::Boolean::New(static_cast<bool>(value != 0)));
+    NanReturnValue(NanNew<Boolean>(static_cast<bool>(value != 0)));
   case GL_SHADER_TYPE:
     glGetShaderiv(shader, pname, &value);
-    return scope.Close(Number::New(static_cast<unsigned long>(value)));
+    NanReturnValue(NanNew<Number>(static_cast<unsigned long>(value)));
   case GL_INFO_LOG_LENGTH:
   case GL_SHADER_SOURCE_LENGTH:
     glGetShaderiv(shader, pname, &value);
-    return scope.Close(Number::New(static_cast<long>(value)));
+    NanReturnValue(NanNew<Number>(static_cast<long>(value)));
   default:
-    return ThrowException(Exception::TypeError(String::New("GetShaderParameter: Invalid Enum")));
+    return NanThrowTypeError("GetShaderParameter: Invalid Enum");
   }
 }
 
@@ -762,7 +755,7 @@ JS_METHOD(GetShaderInfoLog) {
   char Error[1024];
   glGetShaderInfoLog(id, 1024, &Len, Error);
 
-  return scope.Close(String::New(Error));
+  NanReturnValue(NanNew<String>(Error));
 }
 
 
@@ -771,7 +764,7 @@ JS_METHOD(CreateProgram) {
 
   GLuint program = glCreateProgram();
   inst->registerGLObj(GLOBJECT_TYPE_PROGRAM, program);
-  return scope.Close(Number::New(program));
+  NanReturnValue(NanNew<Number>(program));
 }
 
 
@@ -783,7 +776,7 @@ JS_METHOD(AttachShader) {
 
   glAttachShader(program, shader);
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 
@@ -792,7 +785,7 @@ JS_METHOD(LinkProgram) {
 
   glLinkProgram(args[0]->Int32Value());
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 
@@ -808,14 +801,14 @@ JS_METHOD(GetProgramParameter) {
   case GL_LINK_STATUS:
   case GL_VALIDATE_STATUS:
     glGetProgramiv(program, pname, &value);
-    return scope.Close(v8::Boolean::New(static_cast<bool>(value != 0)));
+    NanReturnValue(NanNew<Boolean>(static_cast<bool>(value != 0)));
   case GL_ATTACHED_SHADERS:
   case GL_ACTIVE_ATTRIBUTES:
   case GL_ACTIVE_UNIFORMS:
     glGetProgramiv(program, pname, &value);
-    return scope.Close(Number::New(static_cast<long>(value)));
+    NanReturnValue(NanNew<Number>(static_cast<long>(value)));
   default:
-    return ThrowException(Exception::TypeError(String::New("GetProgramParameter: Invalid Enum")));
+    return NanThrowTypeError("GetProgramParameter: Invalid Enum");
   }
 }
 
@@ -824,9 +817,9 @@ JS_METHOD(GetUniformLocation) {
   JS_BOILERPLATE
 
   int program = args[0]->Int32Value();
-  String::AsciiValue name(args[1]);
+  NanAsciiString name(args[1]);
 
-  return scope.Close(Number::New(glGetUniformLocation(program, *name)));
+  NanReturnValue(NanNew<Number>(glGetUniformLocation(program, *name)));
 }
 
 
@@ -840,7 +833,7 @@ JS_METHOD(ClearColor) {
 
   glClearColor(red, green, blue, alpha);
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 
@@ -851,21 +844,21 @@ JS_METHOD(ClearDepth) {
 
   glClearDepthf(depth);
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(Disable) {
   JS_BOILERPLATE
 
   glDisable(args[0]->Int32Value());
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(Enable) {
   JS_BOILERPLATE
 
   glEnable(args[0]->Int32Value());
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 
@@ -875,7 +868,7 @@ JS_METHOD(CreateTexture) {
   GLuint texture;
   glGenTextures(1, &texture);
   inst->registerGLObj(GLOBJECT_TYPE_TEXTURE, texture);
-  return scope.Close(Number::New(texture));
+  NanReturnValue(NanNew<Number>(texture));
 }
 
 
@@ -886,7 +879,7 @@ JS_METHOD(BindTexture) {
   int texture = args[1]->IsNull() ? 0 : args[1]->Int32Value();
 
   glBindTexture(target, texture);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 
@@ -905,7 +898,7 @@ JS_METHOD(TexImage2D) {
 
   glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels);
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 
@@ -918,7 +911,7 @@ JS_METHOD(TexParameteri) {
 
   glTexParameteri(target, pname, param);
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(TexParameterf) {
@@ -930,7 +923,7 @@ JS_METHOD(TexParameterf) {
 
   glTexParameterf(target, pname, param);
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 
@@ -939,7 +932,7 @@ JS_METHOD(Clear) {
 
   glClear(args[0]->Int32Value());
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 
@@ -948,7 +941,7 @@ JS_METHOD(UseProgram) {
 
   glUseProgram(args[0]->Int32Value());
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(CreateBuffer) {
@@ -957,7 +950,7 @@ JS_METHOD(CreateBuffer) {
   GLuint buffer;
   glGenBuffers(1, &buffer);
   inst->registerGLObj(GLOBJECT_TYPE_BUFFER, buffer);
-  return scope.Close(Number::New(buffer));
+  NanReturnValue(NanNew<Number>(buffer));
 }
 
 JS_METHOD(BindBuffer) {
@@ -967,7 +960,7 @@ JS_METHOD(BindBuffer) {
   int buffer = args[1]->Uint32Value();
   glBindBuffer(target, buffer);
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 
@@ -977,7 +970,7 @@ JS_METHOD(CreateFramebuffer) {
   GLuint buffer;
   glGenFramebuffers(1, &buffer);
   inst->registerGLObj(GLOBJECT_TYPE_FRAMEBUFFER, buffer);
-  return scope.Close(Number::New(buffer));
+  NanReturnValue(NanNew<Number>(buffer));
 }
 
 
@@ -989,7 +982,7 @@ JS_METHOD(BindFramebuffer) {
 
   glBindFramebuffer(target, buffer);
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 
@@ -1004,7 +997,7 @@ JS_METHOD(FramebufferTexture2D) {
 
   glFramebufferTexture2D(target, attachment, textarget, texture, level);
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 
@@ -1025,7 +1018,7 @@ JS_METHOD(BufferData) {
     GLenum usage = args[2]->Int32Value();
     glBufferData(target, size, NULL, usage);
   }
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 
@@ -1042,7 +1035,7 @@ JS_METHOD(BufferSubData) {
 
   glBufferSubData(target, offset, size, data);
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 
@@ -1053,7 +1046,7 @@ JS_METHOD(BlendEquation) {
 
   glBlendEquation(mode);
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 
@@ -1065,7 +1058,7 @@ JS_METHOD(BlendFunc) {
 
   glBlendFunc(sfactor, dfactor);
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 
@@ -1074,7 +1067,7 @@ JS_METHOD(EnableVertexAttribArray) {
 
   glEnableVertexAttribArray(args[0]->Int32Value());
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 
@@ -1091,7 +1084,7 @@ JS_METHOD(VertexAttribPointer) {
   //    printf("VertexAttribPointer %d %d %d %d %d %d\n", indx, size, type, normalized, stride, offset);
   glVertexAttribPointer(indx, size, type, normalized, stride, (const GLvoid *)offset);
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 
@@ -1099,7 +1092,7 @@ JS_METHOD(ActiveTexture) {
   JS_BOILERPLATE
 
   glActiveTexture(args[0]->Int32Value());
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 
@@ -1111,20 +1104,20 @@ JS_METHOD(DrawElements) {
   int type = args[2]->Int32Value();
   GLvoid *offset = reinterpret_cast<GLvoid *>(args[3]->Uint32Value());
   glDrawElements(mode, count, type, offset);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 
 JS_METHOD(Flush) {
   JS_BOILERPLATE
   glFlush();
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(Finish) {
   JS_BOILERPLATE
   glFinish();
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(VertexAttrib1f) {
@@ -1134,7 +1127,7 @@ JS_METHOD(VertexAttrib1f) {
   float x = (float) args[1]->NumberValue();
 
   glVertexAttrib1f(indx, x);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(VertexAttrib2f) {
@@ -1145,7 +1138,7 @@ JS_METHOD(VertexAttrib2f) {
   float y = (float) args[2]->NumberValue();
 
   glVertexAttrib2f(indx, x, y);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(VertexAttrib3f) {
@@ -1157,7 +1150,7 @@ JS_METHOD(VertexAttrib3f) {
   float z = (float) args[3]->NumberValue();
 
   glVertexAttrib3f(indx, x, y, z);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(VertexAttrib4f) {
@@ -1170,7 +1163,7 @@ JS_METHOD(VertexAttrib4f) {
   float w = (float) args[4]->NumberValue();
 
   glVertexAttrib4f(indx, x, y, z, w);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(VertexAttrib1fv) {
@@ -1180,7 +1173,7 @@ JS_METHOD(VertexAttrib1fv) {
   GLfloat *data = getArrayData<GLfloat>(args[1]);
   glVertexAttrib1fv(indx, data);
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(VertexAttrib2fv) {
@@ -1190,7 +1183,7 @@ JS_METHOD(VertexAttrib2fv) {
   GLfloat *data = getArrayData<GLfloat>(args[1]);
   glVertexAttrib2fv(indx, data);
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(VertexAttrib3fv) {
@@ -1200,7 +1193,7 @@ JS_METHOD(VertexAttrib3fv) {
   GLfloat *data = getArrayData<GLfloat>(args[1]);
   glVertexAttrib3fv(indx, data);
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(VertexAttrib4fv) {
@@ -1210,7 +1203,7 @@ JS_METHOD(VertexAttrib4fv) {
   GLfloat *data = getArrayData<GLfloat>(args[1]);
   glVertexAttrib4fv(indx, data);
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(BlendColor) {
@@ -1222,7 +1215,7 @@ JS_METHOD(BlendColor) {
   GLclampf a = (float) args[3]->NumberValue();
 
   glBlendColor(r, g, b, a);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(BlendEquationSeparate) {
@@ -1232,7 +1225,7 @@ JS_METHOD(BlendEquationSeparate) {
   GLenum modeAlpha = args[1]->Int32Value();
 
   glBlendEquationSeparate(modeRGB, modeAlpha);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(BlendFuncSeparate) {
@@ -1244,7 +1237,7 @@ JS_METHOD(BlendFuncSeparate) {
   GLenum dstAlpha = args[3]->Int32Value();
 
   glBlendFuncSeparate(srcRGB, dstRGB, srcAlpha, dstAlpha);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(ClearStencil) {
@@ -1253,7 +1246,7 @@ JS_METHOD(ClearStencil) {
   GLint s = args[0]->Int32Value();
 
   glClearStencil(s);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(ColorMask) {
@@ -1265,7 +1258,7 @@ JS_METHOD(ColorMask) {
   GLboolean a = args[3]->BooleanValue();
 
   glColorMask(r, g, b, a);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(CopyTexImage2D) {
@@ -1281,7 +1274,7 @@ JS_METHOD(CopyTexImage2D) {
   GLint border = args[7]->Int32Value();
 
   glCopyTexImage2D( target, level, internalformat, x, y, width, height, border);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(CopyTexSubImage2D) {
@@ -1297,7 +1290,7 @@ JS_METHOD(CopyTexSubImage2D) {
   GLsizei height = args[7]->Int32Value();
 
   glCopyTexSubImage2D( target, level, xoffset, yoffset, x, y, width, height);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(CullFace) {
@@ -1306,7 +1299,7 @@ JS_METHOD(CullFace) {
   GLenum mode = args[0]->Int32Value();
 
   glCullFace(mode);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(DepthMask) {
@@ -1315,7 +1308,7 @@ JS_METHOD(DepthMask) {
   GLboolean flag = args[0]->BooleanValue();
 
   glDepthMask(flag);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(DepthRange) {
@@ -1325,7 +1318,7 @@ JS_METHOD(DepthRange) {
   GLclampf zFar = (float) args[1]->NumberValue();
 
   glDepthRangef(zNear, zFar);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(DisableVertexAttribArray) {
@@ -1334,7 +1327,7 @@ JS_METHOD(DisableVertexAttribArray) {
   GLuint index = args[0]->Int32Value();
 
   glDisableVertexAttribArray(index);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(Hint) {
@@ -1344,7 +1337,7 @@ JS_METHOD(Hint) {
   GLenum mode = args[1]->Int32Value();
 
   glHint(target, mode);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(IsEnabled) {
@@ -1353,7 +1346,7 @@ JS_METHOD(IsEnabled) {
   GLenum cap = args[0]->Int32Value();
 
   bool ret = glIsEnabled(cap) != 0;
-  return scope.Close(v8::Boolean::New(ret));
+  NanReturnValue(NanNew<Boolean>(ret));
 }
 
 JS_METHOD(LineWidth) {
@@ -1362,7 +1355,7 @@ JS_METHOD(LineWidth) {
   GLfloat width = (float) args[0]->NumberValue();
 
   glLineWidth(width);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(PolygonOffset) {
@@ -1372,7 +1365,7 @@ JS_METHOD(PolygonOffset) {
   GLfloat units = (float) args[1]->NumberValue();
 
   glPolygonOffset(factor, units);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(SampleCoverage) {
@@ -1382,7 +1375,7 @@ JS_METHOD(SampleCoverage) {
   GLboolean invert = args[1]->BooleanValue();
 
   glSampleCoverage(value, invert);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(Scissor) {
@@ -1394,7 +1387,7 @@ JS_METHOD(Scissor) {
   GLsizei height = args[3]->Int32Value();
 
   glScissor(x, y, width, height);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(StencilFunc) {
@@ -1405,7 +1398,7 @@ JS_METHOD(StencilFunc) {
   GLuint mask = args[2]->Int32Value();
 
   glStencilFunc(func, ref, mask);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(StencilFuncSeparate) {
@@ -1417,7 +1410,7 @@ JS_METHOD(StencilFuncSeparate) {
   GLuint mask = args[3]->Int32Value();
 
   glStencilFuncSeparate(face, func, ref, mask);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(StencilMask) {
@@ -1426,7 +1419,7 @@ JS_METHOD(StencilMask) {
   GLuint mask = args[0]->Uint32Value();
 
   glStencilMask(mask);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(StencilMaskSeparate) {
@@ -1436,7 +1429,7 @@ JS_METHOD(StencilMaskSeparate) {
   GLuint mask = args[1]->Uint32Value();
 
   glStencilMaskSeparate(face, mask);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(StencilOp) {
@@ -1447,7 +1440,7 @@ JS_METHOD(StencilOp) {
   GLenum zpass = args[2]->Int32Value();
 
   glStencilOp(fail, zfail, zpass);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(StencilOpSeparate) {
@@ -1459,7 +1452,7 @@ JS_METHOD(StencilOpSeparate) {
   GLenum zpass = args[3]->Int32Value();
 
   glStencilOpSeparate(face, fail, zfail, zpass);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(BindRenderbuffer) {
@@ -1470,7 +1463,7 @@ JS_METHOD(BindRenderbuffer) {
 
   glBindRenderbuffer(target, buffer);
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(CreateRenderbuffer) {
@@ -1479,7 +1472,7 @@ JS_METHOD(CreateRenderbuffer) {
   GLuint renderbuffers;
   glGenRenderbuffers(1, &renderbuffers);
   inst->registerGLObj(GLOBJECT_TYPE_RENDERBUFFER, renderbuffers);
-  return scope.Close(Number::New(renderbuffers));
+  NanReturnValue(NanNew<Number>(renderbuffers));
 }
 
 JS_METHOD(DeleteBuffer) {
@@ -1488,7 +1481,7 @@ JS_METHOD(DeleteBuffer) {
   GLuint buffer = args[0]->Uint32Value();
 
   glDeleteBuffers(1, &buffer);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(DeleteFramebuffer) {
@@ -1497,7 +1490,7 @@ JS_METHOD(DeleteFramebuffer) {
   GLuint buffer = args[0]->Uint32Value();
 
   glDeleteFramebuffers(1, &buffer);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(DeleteProgram) {
@@ -1506,7 +1499,7 @@ JS_METHOD(DeleteProgram) {
   GLuint program = args[0]->Uint32Value();
 
   glDeleteProgram(program);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(DeleteRenderbuffer) {
@@ -1515,7 +1508,7 @@ JS_METHOD(DeleteRenderbuffer) {
   GLuint renderbuffer = args[0]->Uint32Value();
 
   glDeleteRenderbuffers(1, &renderbuffer);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(DeleteShader) {
@@ -1524,7 +1517,7 @@ JS_METHOD(DeleteShader) {
   GLuint shader = args[0]->Uint32Value();
 
   glDeleteShader(shader);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(DeleteTexture) {
@@ -1533,7 +1526,7 @@ JS_METHOD(DeleteTexture) {
   GLuint texture = args[0]->Uint32Value();
 
   glDeleteTextures(1, &texture);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(DetachShader) {
@@ -1543,7 +1536,7 @@ JS_METHOD(DetachShader) {
   GLuint shader = args[1]->Uint32Value();
 
   glDetachShader(program, shader);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(FramebufferRenderbuffer) {
@@ -1555,7 +1548,7 @@ JS_METHOD(FramebufferRenderbuffer) {
   GLuint renderbuffer = args[3]->Uint32Value();
 
   glFramebufferRenderbuffer(target, attachment, renderbuffertarget, renderbuffer);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(GetVertexAttribOffset) {
@@ -1566,43 +1559,43 @@ JS_METHOD(GetVertexAttribOffset) {
   void *ret = NULL;
 
   glGetVertexAttribPointerv(index, pname, &ret);
-  return scope.Close(Number::New(ToGLuint(ret)));
+  NanReturnValue(NanNew<Number>(ToGLuint(ret)));
 }
 
 JS_METHOD(IsBuffer) {
   JS_BOILERPLATE
 
-  return scope.Close(v8::Boolean::New(glIsBuffer(args[0]->Uint32Value()) != 0));
+  NanReturnValue(NanNew<Boolean>(glIsBuffer(args[0]->Uint32Value()) != 0));
 }
 
 JS_METHOD(IsFramebuffer) {
   JS_BOILERPLATE
 
-  return scope.Close(v8::Boolean::New(glIsFramebuffer(args[0]->Uint32Value()) != 0));
+  NanReturnValue(NanNew<Boolean>(glIsFramebuffer(args[0]->Uint32Value()) != 0));
 }
 
 JS_METHOD(IsProgram) {
   JS_BOILERPLATE
 
-  return scope.Close(v8::Boolean::New(glIsProgram(args[0]->Uint32Value()) != 0));
+  NanReturnValue(NanNew<Boolean>(glIsProgram(args[0]->Uint32Value()) != 0));
 }
 
 JS_METHOD(IsRenderbuffer) {
   JS_BOILERPLATE
 
-  return scope.Close(v8::Boolean::New(glIsRenderbuffer( args[0]->Uint32Value()) != 0));
+  NanReturnValue(NanNew<Boolean>(glIsRenderbuffer( args[0]->Uint32Value()) != 0));
 }
 
 JS_METHOD(IsShader) {
   JS_BOILERPLATE
 
-  return scope.Close(v8::Boolean::New(glIsShader(args[0]->Uint32Value()) != 0));
+  NanReturnValue(NanNew<Boolean>(glIsShader(args[0]->Uint32Value()) != 0));
 }
 
 JS_METHOD(IsTexture) {
   JS_BOILERPLATE
 
-  return scope.Close(v8::Boolean::New(glIsTexture(args[0]->Uint32Value()) != 0));
+  NanReturnValue(NanNew<Boolean>(glIsTexture(args[0]->Uint32Value()) != 0));
 }
 
 JS_METHOD(RenderbufferStorage) {
@@ -1614,7 +1607,7 @@ JS_METHOD(RenderbufferStorage) {
   GLsizei height = args[3]->Uint32Value();
 
   glRenderbufferStorage(target, internalformat, width, height);
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(GetShaderSource) {
@@ -1627,10 +1620,10 @@ JS_METHOD(GetShaderSource) {
   GLchar *source = new GLchar[len];
   glGetShaderSource(shader, len, NULL, source);
 
-  Local<String> str = String::New(source);
+  Local<String> str = NanNew<String>(source);
   delete source;
 
-  return str;
+  NanReturnValue(str);
 }
 
 JS_METHOD(ValidateProgram) {
@@ -1638,7 +1631,7 @@ JS_METHOD(ValidateProgram) {
 
   glValidateProgram(args[0]->Int32Value());
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(TexSubImage2D) {
@@ -1656,7 +1649,7 @@ JS_METHOD(TexSubImage2D) {
 
   glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels);
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(ReadPixels) {
@@ -1672,7 +1665,7 @@ JS_METHOD(ReadPixels) {
 
   glReadPixels(x, y, width, height, format, type, pixels);
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(GetTexParameter) {
@@ -1684,7 +1677,7 @@ JS_METHOD(GetTexParameter) {
   GLint param_value = 0;
   glGetTexParameteriv(target, pname, &param_value);
 
-  return scope.Close(Number::New(param_value));
+  NanReturnValue(NanNew<Number>(param_value));
 }
 
 JS_METHOD(GetActiveAttrib) {
@@ -1699,12 +1692,12 @@ JS_METHOD(GetActiveAttrib) {
   GLsizei size;
   glGetActiveAttrib(program, index, 1024, &length, &size, &type, name);
 
-  Local<Array> activeInfo = Array::New(3);
-  activeInfo->Set(String::New("size"), Number::New(size));
-  activeInfo->Set(String::New("type"), Number::New((int)type));
-  activeInfo->Set(String::New("name"), String::New(name));
+  Local<Array> activeInfo = NanNew<Array>(3);
+  activeInfo->Set(NanNew<String>("size"), NanNew<Number>(size));
+  activeInfo->Set(NanNew<String>("type"), NanNew<Number>((int)type));
+  activeInfo->Set(NanNew<String>("name"), NanNew<String>(name));
 
-  return scope.Close(activeInfo);
+  NanReturnValue(activeInfo);
 }
 
 JS_METHOD(GetActiveUniform) {
@@ -1719,12 +1712,12 @@ JS_METHOD(GetActiveUniform) {
   GLsizei size;
   glGetActiveUniform(program, index, 1024, &length, &size, &type, name);
 
-  Local<Array> activeInfo = Array::New(3);
-  activeInfo->Set(String::New("size"), Number::New(size));
-  activeInfo->Set(String::New("type"), Number::New((int)type));
-  activeInfo->Set(String::New("name"), String::New(name));
+  Local<Array> activeInfo = NanNew<Array>(3);
+  activeInfo->Set(NanNew<String>("size"), NanNew<Number>(size));
+  activeInfo->Set(NanNew<String>("type"), NanNew<Number>((int)type));
+  activeInfo->Set(NanNew<String>("name"), NanNew<String>(name));
 
-  return scope.Close(activeInfo);
+  NanReturnValue(activeInfo);
 }
 
 JS_METHOD(GetAttachedShaders) {
@@ -1736,11 +1729,11 @@ JS_METHOD(GetAttachedShaders) {
   GLsizei count;
   glGetAttachedShaders(program, 1024, &count, shaders);
 
-  Local<Array> shadersArr = Array::New(count);
+  Local<Array> shadersArr = NanNew<Array>(count);
   for (int i = 0; i < count; i++)
-    shadersArr->Set(i, Number::New((int)shaders[i]));
+    shadersArr->Set(i, NanNew<Number>((int)shaders[i]));
 
-  return scope.Close(shadersArr);
+  NanReturnValue(shadersArr);
 }
 
 JS_METHOD(GetParameter) {
@@ -1763,7 +1756,7 @@ JS_METHOD(GetParameter) {
     // return a boolean
     GLboolean params;
     ::glGetBooleanv(name, &params);
-    return scope.Close(v8::Boolean::New(params != 0));
+    NanReturnValue(NanNew<Boolean>(params != 0));
   }
   case GL_DEPTH_CLEAR_VALUE:
   case GL_LINE_WIDTH:
@@ -1773,7 +1766,7 @@ JS_METHOD(GetParameter) {
     // return a float
     GLfloat params;
     ::glGetFloatv(name, &params);
-    return scope.Close(Number::New(params));
+    NanReturnValue(NanNew<Number>(params));
   }
   case GL_RENDERER:
   case GL_SHADING_LANGUAGE_VERSION:
@@ -1782,17 +1775,21 @@ JS_METHOD(GetParameter) {
   case GL_EXTENSIONS: {
     // return a string
     char *params = (char *) ::glGetString(name);
-    return scope.Close(params ? String::New(params) : Undefined());
+    if (params) {
+      NanReturnValue(NanNew<String>(params));
+    } else {
+      NanReturnUndefined();
+    }
   }
   case GL_MAX_VIEWPORT_DIMS: {
     // return a int32[2]
     GLint params[2];
     ::glGetIntegerv(name, params);
 
-    Local<Array> arr = Array::New(2);
-    arr->Set(0, Number::New(params[0]));
-    arr->Set(1, Number::New(params[1]));
-    return scope.Close(arr);
+    Local<Array> arr = NanNew<Array>(2);
+    arr->Set(0, NanNew<Number>(params[0]));
+    arr->Set(1, NanNew<Number>(params[1]));
+    NanReturnValue(arr);
   }
   case GL_SCISSOR_BOX:
   case GL_VIEWPORT: {
@@ -1800,12 +1797,12 @@ JS_METHOD(GetParameter) {
     GLint params[4];
     ::glGetIntegerv(name, params);
 
-    Local<Array> arr = Array::New(4);
-    arr->Set(0, Number::New(params[0]));
-    arr->Set(1, Number::New(params[1]));
-    arr->Set(2, Number::New(params[2]));
-    arr->Set(3, Number::New(params[3]));
-    return scope.Close(arr);
+    Local<Array> arr = NanNew<Array>(4);
+    arr->Set(0, NanNew<Number>(params[0]));
+    arr->Set(1, NanNew<Number>(params[1]));
+    arr->Set(2, NanNew<Number>(params[2]));
+    arr->Set(3, NanNew<Number>(params[3]));
+    NanReturnValue(arr);
   }
   case GL_ALIASED_LINE_WIDTH_RANGE:
   case GL_ALIASED_POINT_SIZE_RANGE:
@@ -1813,33 +1810,33 @@ JS_METHOD(GetParameter) {
     // return a float[2]
     GLfloat params[2];
     ::glGetFloatv(name, params);
-    Local<Array> arr = Array::New(2);
-    arr->Set(0, Number::New(params[0]));
-    arr->Set(1, Number::New(params[1]));
-    return scope.Close(arr);
+    Local<Array> arr = NanNew<Array>(2);
+    arr->Set(0, NanNew<Number>(params[0]));
+    arr->Set(1, NanNew<Number>(params[1]));
+    NanReturnValue(arr);
   }
   case GL_BLEND_COLOR:
   case GL_COLOR_CLEAR_VALUE: {
     // return a float[4]
     GLfloat params[4];
     ::glGetFloatv(name, params);
-    Local<Array> arr = Array::New(4);
-    arr->Set(0, Number::New(params[0]));
-    arr->Set(1, Number::New(params[1]));
-    arr->Set(2, Number::New(params[2]));
-    arr->Set(3, Number::New(params[3]));
-    return scope.Close(arr);
+    Local<Array> arr = NanNew<Array>(4);
+    arr->Set(0, NanNew<Number>(params[0]));
+    arr->Set(1, NanNew<Number>(params[1]));
+    arr->Set(2, NanNew<Number>(params[2]));
+    arr->Set(3, NanNew<Number>(params[3]));
+    NanReturnValue(arr);
   }
   case GL_COLOR_WRITEMASK: {
     // return a boolean[4]
     GLboolean params[4];
     ::glGetBooleanv(name, params);
-    Local<Array> arr = Array::New(4);
-    arr->Set(0, v8::Boolean::New(params[0] == 1));
-    arr->Set(1, v8::Boolean::New(params[1] == 1));
-    arr->Set(2, v8::Boolean::New(params[2] == 1));
-    arr->Set(3, v8::Boolean::New(params[3] == 1));
-    return scope.Close(arr);
+    Local<Array> arr = NanNew<Array>(4);
+    arr->Set(0, NanNew<Boolean>(params[0] == 1));
+    arr->Set(1, NanNew<Boolean>(params[1] == 1));
+    arr->Set(2, NanNew<Boolean>(params[2] == 1));
+    arr->Set(3, NanNew<Boolean>(params[3] == 1));
+    NanReturnValue(arr);
   }
   case GL_ARRAY_BUFFER_BINDING:
   case GL_CURRENT_PROGRAM:
@@ -1850,17 +1847,17 @@ JS_METHOD(GetParameter) {
   case GL_TEXTURE_BINDING_CUBE_MAP: {
     GLint params;
     ::glGetIntegerv(name, &params);
-    return scope.Close(Number::New(params));
+    NanReturnValue(NanNew<Number>(params));
   }
   default: {
     // return a long
     GLint params;
     ::glGetIntegerv(name, &params);
-    return scope.Close(Number::New(params));
+    NanReturnValue(NanNew<Number>(params));
   }
   }
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(GetBufferParameter) {
@@ -1871,7 +1868,7 @@ JS_METHOD(GetBufferParameter) {
 
   GLint params;
   glGetBufferParameteriv(target, pname, &params);
-  return scope.Close(Number::New(params));
+  NanReturnValue(NanNew<Number>(params));
 }
 
 JS_METHOD(GetFramebufferAttachmentParameter) {
@@ -1883,7 +1880,7 @@ JS_METHOD(GetFramebufferAttachmentParameter) {
 
   GLint params;
   glGetFramebufferAttachmentParameteriv(target, attachment, pname, &params);
-  return scope.Close(Number::New(params));
+  NanReturnValue(NanNew<Number>(params));
 }
 
 JS_METHOD(GetProgramInfoLog) {
@@ -1894,7 +1891,7 @@ JS_METHOD(GetProgramInfoLog) {
   char Error[1024];
   glGetProgramInfoLog(program, 1024, &Len, Error);
 
-  return scope.Close(String::New(Error));
+  NanReturnValue(NanNew<String>(Error));
 }
 
 JS_METHOD(GetRenderbufferParameter) {
@@ -1905,7 +1902,7 @@ JS_METHOD(GetRenderbufferParameter) {
   int value = 0;
   glGetRenderbufferParameteriv(target, pname, &value);
 
-  return scope.Close(Number::New(value));
+  NanReturnValue(NanNew<Number>(value));
 }
 
 JS_METHOD(GetVertexAttrib) {
@@ -1920,30 +1917,30 @@ JS_METHOD(GetVertexAttrib) {
   case GL_VERTEX_ATTRIB_ARRAY_ENABLED:
   case GL_VERTEX_ATTRIB_ARRAY_NORMALIZED:
     glGetVertexAttribiv(index, pname, &value);
-    return scope.Close(v8::Boolean::New(value != 0));
+    NanReturnValue(NanNew<Boolean>(value != 0));
   case GL_VERTEX_ATTRIB_ARRAY_SIZE:
   case GL_VERTEX_ATTRIB_ARRAY_STRIDE:
   case GL_VERTEX_ATTRIB_ARRAY_TYPE:
     glGetVertexAttribiv(index, pname, &value);
-    return scope.Close(Number::New(value));
+    NanReturnValue(NanNew<Number>(value));
   case GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING:
     glGetVertexAttribiv(index, pname, &value);
-    return scope.Close(Number::New(value));
+    NanReturnValue(NanNew<Number>(value));
   case GL_CURRENT_VERTEX_ATTRIB: {
     float vextex_attribs[4];
     glGetVertexAttribfv(index, pname, vextex_attribs);
-    Local<Array> arr = Array::New(4);
-    arr->Set(0, Number::New(vextex_attribs[0]));
-    arr->Set(1, Number::New(vextex_attribs[1]));
-    arr->Set(2, Number::New(vextex_attribs[2]));
-    arr->Set(3, Number::New(vextex_attribs[3]));
-    return scope.Close(arr);
+    Local<Array> arr = NanNew<Array>(4);
+    arr->Set(0, NanNew<Number>(vextex_attribs[0]));
+    arr->Set(1, NanNew<Number>(vextex_attribs[1]));
+    arr->Set(2, NanNew<Number>(vextex_attribs[2]));
+    arr->Set(3, NanNew<Number>(vextex_attribs[3]));
+    NanReturnValue(arr);
   }
   default:
-    return ThrowError("GetVertexAttrib: Invalid Enum");
+    return NanThrowError("GetVertexAttrib: Invalid Enum");
   }
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 JS_METHOD(GetSupportedExtensions) {
@@ -1951,7 +1948,7 @@ JS_METHOD(GetSupportedExtensions) {
 
   char *extensions = (char *) glGetString(GL_EXTENSIONS);
 
-  return scope.Close(String::New(extensions));
+  NanReturnValue(NanNew<String>(extensions));
 }
 
 // TODO GetExtension(name) return the extension name if found, should be an object...
@@ -1959,17 +1956,17 @@ JS_METHOD(GetExtension) {
   JS_BOILERPLATE
 
   if (args.Length() < 1 || !args[0]->IsString()) {
-    ThrowTypeError("First parameter must be a string");
+    NanThrowTypeError("First parameter must be a string");
   }
 
-  String::AsciiValue name(args[0]);
+  NanAsciiString name(args[0]);
   char *sname = *name;
   char *extensions = (char *)glGetString(GL_EXTENSIONS);
 
   char *ext = strcasestr(extensions, sname);
 
-  if (!ext) return scope.Close(Null());
-  return scope.Close(String::New(ext, (int)::strlen(sname)));
+  if (!ext) NanReturnNull();
+  NanReturnValue(NanNew<String>(ext, (int)::strlen(sname)));
 }
 
 JS_METHOD(CheckFramebufferStatus) {
@@ -1977,7 +1974,7 @@ JS_METHOD(CheckFramebufferStatus) {
 
   GLenum target = args[0]->Int32Value();
 
-  return scope.Close(Number::New((int)glCheckFramebufferStatus(target)));
+  NanReturnValue(NanNew<Number>((int)glCheckFramebufferStatus(target)));
 }
 
 } // end namespace HeadlessGL
