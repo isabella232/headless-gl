@@ -252,8 +252,8 @@ NAN_METHOD(WebGL::New) {
     return NanThrowError("Error creating WebGLRenderingContext");
   }
 
-  args.This()->Set(NanNew<String>("drawingBufferWidth"), NanNew<Integer>(width), static_cast<PropertyAttribute>(ReadOnly | DontDelete));
-  args.This()->Set(NanNew<String>("drawingBufferHeight"), NanNew<Integer>(height), static_cast<PropertyAttribute>(ReadOnly | DontDelete));
+  args.This()->ForceSet(NanNew<String>("drawingBufferWidth"), NanNew<Integer>(width), static_cast<PropertyAttribute>(ReadOnly | DontDelete));
+  args.This()->ForceSet(NanNew<String>("drawingBufferHeight"), NanNew<Integer>(height), static_cast<PropertyAttribute>(ReadOnly | DontDelete));
 
   instance->Wrap(args.This());
   NanReturnThis();
